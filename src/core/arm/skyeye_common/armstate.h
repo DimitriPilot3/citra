@@ -194,11 +194,14 @@ public:
         return TFlag ? 2 : 4;
     }
 
+    // Called from InterpreterMainLoop when it reaches a GDB code-execution breakpoint.
+    // TODO: Decide which class is best suited for tracing memory watchpoint hits. Here or gdbstub?
+    //       Is the ability to trace multiple WP hits (or BP + WP) on the same instruction useful?
     void RecordBreak(GDBStub::BreakpointAddress bkpt) {
         last_bkpt = bkpt;
         last_bkpt_hit = true;
     }
-
+    // Defers trap events (single-stepping, breakpoint or watchpoint hit) to the GDB client.
     void ServeBreak();
 
     Core::System& system;
@@ -262,5 +265,5 @@ private:
     bool exclusive_state;
 
     GDBStub::BreakpointAddress last_bkpt{};
-    bool last_bkpt_hit;
+    bool last_bkpt_hit = false;
 };
