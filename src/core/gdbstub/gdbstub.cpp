@@ -136,7 +136,6 @@ u16 gdbstub_port = 24689;
 
 bool halt_loop = true;
 bool step_loop = false;
-bool send_trap = false;
 
 // If set to false, the server will never be started and no
 // gdbstub-related functions will be executed.
@@ -874,8 +873,6 @@ static void WriteMemory() {
 }
 
 void Break(bool is_memory_break) {
-    send_trap = true;
-
     memory_break = is_memory_break;
 }
 
@@ -887,7 +884,6 @@ static void Step() {
     }
     step_loop = true;
     halt_loop = true;
-    send_trap = true;
     Core::CPU().ClearInstructionCache();
 }
 
@@ -1238,15 +1234,10 @@ void SetCpuStepFlag(bool is_step) {
 }
 
 void SendTrap(Kernel::Thread* thread, int trap) {
-    if (!send_trap) {
-        return;
-    }
-
     if (!halt_loop || current_thread == thread) {
         current_thread = thread;
         SendSignal(thread, trap);
     }
     halt_loop = true;
-    send_trap = false;
 }
 }; // namespace GDBStub
