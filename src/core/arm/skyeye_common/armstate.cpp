@@ -600,12 +600,13 @@ void ARMul_State::ServeBreak() {
         return;
     }
 
-    if (last_bkpt_hit) {
-        Reg[15] = last_bkpt.address;
+    if (last_bkpt_hit && last_bkpt.type == GDBStub::BreakpointType::Execute) {
+        ASSERT(Reg[15] == last_bkpt.address);
     }
     Kernel::Thread* thread = system.Kernel().GetThreadManager().GetCurrentThread();
     system.CPU().SaveContext(thread->context);
-    if (last_bkpt_hit || GDBStub::GetCpuStepFlag()) {
+
+    if (last_bkpt_hit || GDBStub::IsMemoryBreak() || GDBStub::GetCpuStepFlag()) {
         last_bkpt_hit = false;
         GDBStub::Break();
         GDBStub::SendTrap(thread, 5);
