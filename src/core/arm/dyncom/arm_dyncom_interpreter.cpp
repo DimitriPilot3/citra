@@ -923,7 +923,9 @@ MICROPROFILE_DEFINE(DynCom_Execute, "DynCom", "Execute", MP_RGB(255, 0, 0));
 unsigned InterpreterMainLoop(ARMul_State* cpu) {
     MICROPROFILE_SCOPE(DynCom_Execute);
 
+    /// Nearest upcoming GDB code execution breakpoint, relative to the last dispatch's address.
     GDBStub::BreakpointAddress breakpoint_data;
+    breakpoint_data.type = GDBStub::BreakpointType::None;
 
 #undef RM
 #undef RS
