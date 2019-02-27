@@ -15,23 +15,16 @@ namespace Kernel {
 class Process;
 }
 
+class ARM_Interface;
+
 namespace Service::LDR {
 
-// GCC versions < 5.0 do not implement std::is_trivially_copyable.
-// Excluding MSVC because it has weird behaviour for std::is_trivially_copyable.
-#if (__GNUC__ >= 5) || defined(__clang__)
 #define ASSERT_CRO_STRUCT(name, size)                                                              \
     static_assert(std::is_standard_layout<name>::value,                                            \
                   "CRO structure " #name " doesn't use standard layout");                          \
     static_assert(std::is_trivially_copyable<name>::value,                                         \
                   "CRO structure " #name " isn't trivially copyable");                             \
     static_assert(sizeof(name) == (size), "Unexpected struct size for CRO structure " #name)
-#else
-#define ASSERT_CRO_STRUCT(name, size)                                                              \
-    static_assert(std::is_standard_layout<name>::value,                                            \
-                  "CRO structure " #name " doesn't use standard layout");                          \
-    static_assert(sizeof(name) == (size), "Unexpected struct size for CRO structure " #name)
-#endif
 
 static constexpr u32 CRO_HEADER_SIZE = 0x138;
 static constexpr u32 CRO_HASH_SIZE = 0x80;
@@ -40,8 +33,9 @@ static constexpr u32 CRO_HASH_SIZE = 0x80;
 class CROHelper final {
 public:
     // TODO (wwylele): pass in the process handle for memory access
-    explicit CROHelper(VAddr cro_address, Kernel::Process& process, Memory::MemorySystem& memory)
-        : module_address(cro_address), process(process), memory(memory) {}
+    explicit CROHelper(VAddr cro_address, Kernel::Process& process, Memory::MemorySystem& memory,
+                       ARM_Interface& cpu)
+        : module_address(cro_address), process(process), memory(memory), cpu(cpu) {}
 
     std::string ModuleName() const {
         return memory.ReadCString(GetField(ModuleNameOffset), GetField(ModuleNameSize));
@@ -151,6 +145,7 @@ private:
     const VAddr module_address; ///< the virtual address of this module
     Kernel::Process& process;   ///< the owner process of this module
     Memory::MemorySystem& memory;
+    ARM_Interface& cpu;
 
     /**
      * Each item in this enum represents a u32 field in the header begin from address+0x80,
@@ -480,10 +475,11 @@ private:
      */
     template <typename FunctionObject>
     static ResultCode ForEachAutoLinkCRO(Kernel::Process& process, Memory::MemorySystem& memory,
-                                         VAddr crs_address, FunctionObject func) {
+                                         ARM_Interface& cpu, VAddr crs_address,
+                                         FunctionObject func) {
         VAddr current = crs_address;
         while (current != 0) {
-            CROHelper cro(current, process, memory);
+            CROHelper cro(current, process, memory, cpu);
             CASCADE_RESULT(bool next, func(cro));
             if (!next)
                 break;

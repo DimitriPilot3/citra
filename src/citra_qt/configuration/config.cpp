@@ -408,6 +408,7 @@ void Config::SaveValues() {
     for (std::size_t p = 0; p < Settings::values.input_profiles.size(); ++p) {
         qt_config->setArrayIndex(static_cast<int>(p));
         const auto& profile = Settings::values.input_profiles[p];
+        WriteSetting("name", QString::fromStdString(profile.name), "default");
         for (int i = 0; i < Settings::NativeButton::NumButtons; ++i) {
             std::string default_param = InputCommon::GenerateKeyboardParam(default_buttons[i]);
             WriteSetting(QString::fromStdString(Settings::NativeButton::mapping[i]),
@@ -635,11 +636,11 @@ void Config::SaveValues() {
     qt_config->endGroup();
 }
 
-QVariant Config::ReadSetting(const QString& name) {
+QVariant Config::ReadSetting(const QString& name) const {
     return qt_config->value(name);
 }
 
-QVariant Config::ReadSetting(const QString& name, const QVariant& default_value) {
+QVariant Config::ReadSetting(const QString& name, const QVariant& default_value) const {
     QVariant result;
     if (qt_config->value(name + "/default", false).toBool()) {
         result = default_value;
