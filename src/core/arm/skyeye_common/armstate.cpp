@@ -603,7 +603,7 @@ void ARMul_State::ServeBreak() {
     }
 
     if (last_bkpt_hit && last_bkpt.type == GDBStub::BreakpointType::Execute) {
-        ASSERT(Reg[15] == last_bkpt.address);
+        DEBUG_ASSERT(Reg[15] == last_bkpt.address);
     }
 
     DEBUG_ASSERT(system != nullptr);
