@@ -126,7 +126,7 @@ u8 command_buffer[GDB_BUFFER_SIZE];
 u32 command_length;
 
 u32 latest_signal = 0;
-bool memory_break = false;
+std::optional<VAddr> watchpoint_addr{}; // A hit address to report in next stop reply.
 
 static Kernel::Thread* current_thread = nullptr;
 
@@ -618,7 +618,7 @@ static void SendSignal(Kernel::Thread* thread, u32 signal, bool full = true) {
     std::string buffer;
     if (full) {
 
-        buffer = fmt::format("T{:02x}{:02x}:{:08x};{:02x}:{:08x};{:02x}:{:08x}", latest_signal,
+        buffer = fmt::format("T{:02x}{:02x}:{:08x};{:02x}:{:08x};{:02x}:{:08x};", latest_signal,
                              PC_REGISTER, htonl(Core::CPU().GetPC()), SP_REGISTER,
                              htonl(Core::CPU().GetReg(SP_REGISTER)), LR_REGISTER,
                              htonl(Core::CPU().GetReg(LR_REGISTER)));
@@ -627,7 +627,10 @@ static void SendSignal(Kernel::Thread* thread, u32 signal, bool full = true) {
     }
 
     if (thread) {
-        buffer += fmt::format(";thread:{:x};", thread->GetThreadId());
+        buffer += fmt::format("thread:{:x};", thread->GetThreadId());
+    }
+    if (watchpoint_addr) {
+        buffer += fmt::format("watch:{:x};", watchpoint_addr.value());
     }
 
     LOG_DEBUG(Debug_GDBStub, "Response: {}", buffer);
@@ -873,10 +876,8 @@ static void WriteMemory() {
     SendReply("OK");
 }
 
-void Break(bool is_memory_break) {
+void Break() {
     send_trap = true;
-
-    memory_break = is_memory_break;
 }
 
 /// Tell the CPU that it should perform a single step.
@@ -885,6 +886,7 @@ static void Step() {
         RegWrite(PC_REGISTER, GdbHexToInt(command_buffer + 1), current_thread);
         Core::CPU().LoadContext(current_thread->context);
     }
+    watchpoint_addr.reset();
     step_loop = true;
     halt_loop = true;
     send_trap = true;
@@ -896,12 +898,12 @@ bool IsMemoryBreak() {
         return false;
     }
 
-    return memory_break;
+    return watchpoint_addr.has_value();
 }
 
 /// Tell the CPU to continue executing.
 static void Continue() {
-    memory_break = false;
+    watchpoint_addr.reset();
     step_loop = false;
     halt_loop = false;
     Core::CPU().ClearInstructionCache();
@@ -1248,5 +1250,10 @@ void SendTrap(Kernel::Thread* thread, int trap) {
     }
     halt_loop = true;
     send_trap = false;
+}
+
+void OnWatchpointHit(VAddr address) {
+    watchpoint_addr.emplace(address);
+    Break();
 }
 }; // namespace GDBStub

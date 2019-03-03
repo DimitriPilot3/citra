@@ -53,10 +53,8 @@ bool IsConnected();
 
 /**
  * Signal to the gdbstub server that it should halt CPU execution.
- *
- * @param is_memory_break If true, the break resulted from a memory breakpoint.
  */
-void Break(bool is_memory_break = false);
+void Break();
 
 /// Determine if there was a memory breakpoint.
 bool IsMemoryBreak();
@@ -100,4 +98,22 @@ void SetCpuStepFlag(bool is_step);
  * @param trap Trap no.
  */
 void SendTrap(Kernel::Thread* thread, int trap);
+
+/**
+ * Signal to the gdbstub server that the CPU hit a watchpoint at a given data address.
+ *
+ * The gdb client attempts to find the culprit watchpoint based on the reported address.
+ * It must fall within a watchpoint's address interval, as defined by its address + size.
+ * Therefore, any address "within range is sufficient" - it doesn't have to be exact.
+ *
+ * While this client-side range check is a reasonable default for new stub servers, it's
+ * limited by the remote protocol: we can't specify how big the reported data region is.
+ *
+ * For example, a watchpoint targetting *(char *)0x1237 could be hit by Read32(0x1234)
+ * server-side. However, for the client to register a hit, the reported address must
+ * EXACTLY be 0x1237 (watchpoint address) and not 0x1234 (data operation address)!
+ *
+ * @param address Hit address.
+ */
+void OnWatchpointHit(VAddr address);
 } // namespace GDBStub
