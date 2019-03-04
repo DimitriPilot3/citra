@@ -119,8 +119,6 @@ public:
         parent.jit->SetCpsr(parent.interpreter_state->Cpsr);
         parent.jit->ExtRegs() = parent.interpreter_state->ExtReg;
         parent.jit->SetFpscr(parent.interpreter_state->VFP[VFP_FPSCR]);
-
-        parent.interpreter_state->ServeBreak();
     }
 
     void CallSVC(std::uint32_t swi) override {

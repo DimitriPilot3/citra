@@ -152,7 +152,6 @@ void ARM_DynCom::ExecuteInstructions(u64 num_instructions) {
     if (system != nullptr) {
         system->CoreTiming().AddTicks(ticks_executed);
     }
-    state->ServeBreak();
 }
 
 std::unique_ptr<ARM_Interface::ThreadContext> ARM_DynCom::NewContext() const {

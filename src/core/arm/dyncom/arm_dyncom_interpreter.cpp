@@ -4578,13 +4578,11 @@ YIELD_INST : {
 #include "core/arm/skyeye_common/vfp/vfpinstr.cpp"
 #undef VFP_INTERPRETER_IMPL
 
-END : {
+END:
     SAVE_NZCVT;
+    cpu->ServeBreak();
+
+INIT_INST_LENGTH:
     cpu->NumInstrsToExecute = 0;
     return num_instrs;
-}
-INIT_INST_LENGTH : {
-    cpu->NumInstrsToExecute = 0;
-    return num_instrs;
-}
 }
