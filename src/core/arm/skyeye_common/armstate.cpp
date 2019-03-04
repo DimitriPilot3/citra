@@ -602,10 +602,6 @@ void ARMul_State::ServeBreak() {
         return;
     }
 
-    if (last_bkpt_hit && last_bkpt.type == GDBStub::BreakpointType::Execute) {
-        DEBUG_ASSERT(Reg[15] == last_bkpt.address);
-    }
-
     DEBUG_ASSERT(system != nullptr);
     Kernel::Thread* thread = system->Kernel().GetThreadManager().GetCurrentThread();
     system->CPU().SaveContext(thread->context);
