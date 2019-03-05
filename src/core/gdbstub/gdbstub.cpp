@@ -441,13 +441,14 @@ bool CheckBreakpoint(VAddr addr, BreakpointType type) {
     }
 
     const BreakpointMap& p = GetBreakpointMap(type);
-    const auto bp = p.find(addr);
+    const auto it = p.find(addr);
 
-    if (bp == p.end()) {
+    if (it == p.end()) {
         return false;
     }
 
-    u32 len = bp->second.len;
+    auto bp = it->second;
+    u32 len = bp.len;
 
     // IDA Pro defaults to 4-byte breakpoints for all non-hardware breakpoints
     // no matter if it's a 4-byte or 2-byte instruction. When you execute a
@@ -461,11 +462,11 @@ bool CheckBreakpoint(VAddr addr, BreakpointType type) {
         len = 1;
     }
 
-    if (bp->second.active && (addr >= bp->second.addr && addr < bp->second.addr + len)) {
+    if (bp.active && (addr >= bp.addr && addr < bp.addr + len)) {
         LOG_DEBUG(Debug_GDBStub,
                   "Found breakpoint type {} @ {:08x}, range: {:08x}"
                   " - {:08x} ({:x} bytes)",
-                  static_cast<int>(type), addr, bp->second.addr, bp->second.addr + len, len);
+                  static_cast<int>(type), addr, bp.addr, bp.addr + len, len);
         return true;
     }
 
