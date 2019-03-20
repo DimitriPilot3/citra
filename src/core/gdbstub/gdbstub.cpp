@@ -476,10 +476,11 @@ std::optional<VAddr> CheckBreakpoint(VAddr addr, u32 len, BreakpointType type) {
         }
 
         if (bp.active && (bp_addr + bp_len > addr)) {
+            static const char* TypeToString[] = {"<None>", "break", "read watch", "watch",
+                                                 "access watch"};
             LOG_DEBUG(Debug_GDBStub,
-                      "Found breakpoint type {} @ {:08x}, range: {:08x}"
-                      " - {:08x} ({:x} bytes)",
-                      static_cast<int>(type), addr, bp_addr, bp_addr + bp_len, bp_len);
+                      "Found {}point @ {:08x} (size = {}) while accessing {} byte(s) @ {:08x}",
+                      TypeToString[static_cast<int>(type)], bp.addr, bp.len, len, addr);
             return bp.addr;
         }
     }
