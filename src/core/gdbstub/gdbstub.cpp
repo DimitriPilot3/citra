@@ -441,33 +441,40 @@ bool CheckBreakpoint(VAddr addr, BreakpointType type) {
     }
 
     const BreakpointMap& p = GetBreakpointMap(type);
-    const auto it = p.find(addr);
 
-    if (it == p.end()) {
-        return false;
-    }
+    for (auto it = p.begin(); it != p.end(); ++it) {
+        auto bp = it->second;
 
-    auto bp = it->second;
-    u32 len = bp.len;
+        // For watchpoints, mimic the default range check done by the gdb remote protocol;
+        // i.e. we assume the R/W operation behind this check is only 1 byte wide. Thus,
+        // only watchpoints starting at an address within [0; addr] can ever match,
+        // regardless of their size.  And since a BreakpointMap is sorted by VAddr,
+        // we can just ignore all addresses that are too high.
+        if (bp.addr > addr) {
+            break;
+        }
 
-    // IDA Pro defaults to 4-byte breakpoints for all non-hardware breakpoints
-    // no matter if it's a 4-byte or 2-byte instruction. When you execute a
-    // Thumb instruction with a 4-byte breakpoint set, it will set a breakpoint on
-    // two instructions instead of the single instruction you placed the breakpoint
-    // on. So, as a way to make sure that execution breakpoints are only breaking
-    // on the instruction that was specified, set the length of an execution
-    // breakpoint to 1. This should be fine since the CPU should never begin executing
-    // an instruction anywhere except the beginning of the instruction.
-    if (type == BreakpointType::Execute) {
-        len = 1;
-    }
+        u32 len = bp.len;
 
-    if (bp.active && (addr >= bp.addr && addr < bp.addr + len)) {
-        LOG_DEBUG(Debug_GDBStub,
-                  "Found breakpoint type {} @ {:08x}, range: {:08x}"
-                  " - {:08x} ({:x} bytes)",
-                  static_cast<int>(type), addr, bp.addr, bp.addr + len, len);
-        return true;
+        // IDA Pro defaults to 4-byte breakpoints for all non-hardware breakpoints
+        // no matter if it's a 4-byte or 2-byte instruction. When you execute a
+        // Thumb instruction with a 4-byte breakpoint set, it will set a breakpoint on
+        // two instructions instead of the single instruction you placed the breakpoint
+        // on. So, as a way to make sure that execution breakpoints are only breaking
+        // on the instruction that was specified, set the length of an execution
+        // breakpoint to 1. This should be fine since the CPU should never begin executing
+        // an instruction anywhere except the beginning of the instruction.
+        if (type == BreakpointType::Execute) {
+            len = 1;
+        }
+
+        if (bp.active && (addr >= bp.addr && addr < bp.addr + len)) {
+            LOG_DEBUG(Debug_GDBStub,
+                      "Found breakpoint type {} @ {:08x}, range: {:08x}"
+                      " - {:08x} ({:x} bytes)",
+                      static_cast<int>(type), addr, bp.addr, bp.addr + len, len);
+            return true;
+        }
     }
 
     return false;
