@@ -435,26 +435,33 @@ BreakpointAddress GetNextBreakpointFromAddress(VAddr addr, BreakpointType type) 
     return breakpoint;
 }
 
-bool CheckBreakpoint(VAddr addr, BreakpointType type) {
+bool CheckBreakpoint(VAddr addr, u32 len, BreakpointType type) {
     if (!IsConnected()) {
         return false;
     }
 
     const BreakpointMap& p = GetBreakpointMap(type);
 
+    // To find out if any breakpoints are watching the given memory block, we need
+    // their address intervals to intersect, even partially. These are respectively:
+    //
+    //      [ bp.addr ; bp.addr + bp.len [
+    //         [ addr ; addr + len [
+    //
+    // Notice the two intervals are contiguous and right-open. To intersect, they shall
+    // meet both these conditions:  bp.addr < addr + len && bp.addr + bp.len > addr.
+
     for (auto it = p.begin(); it != p.end(); ++it) {
         auto bp = it->second;
 
-        // For watchpoints, mimic the default range check done by the gdb remote protocol;
-        // i.e. we assume the R/W operation behind this check is only 1 byte wide. Thus,
-        // only watchpoints starting at an address within [0; addr] can ever match,
-        // regardless of their size.  And since a BreakpointMap is sorted by VAddr,
-        // we can just ignore all addresses that are too high.
-        if (bp.addr > addr) {
+        // Enforce the left hand-side condition, as stated above. Since a BreakpointMap
+        // is sorted by VAddr, we can just ignore all addresses that are too high.
+        if (!(bp.addr < s64(addr) + len)) {
             break;
         }
 
-        u32 len = bp.len;
+        s64 bp_addr = bp.addr;
+        s64 bp_len = bp.len;
 
         // IDA Pro defaults to 4-byte breakpoints for all non-hardware breakpoints
         // no matter if it's a 4-byte or 2-byte instruction. When you execute a
@@ -465,14 +472,14 @@ bool CheckBreakpoint(VAddr addr, BreakpointType type) {
         // breakpoint to 1. This should be fine since the CPU should never begin executing
         // an instruction anywhere except the beginning of the instruction.
         if (type == BreakpointType::Execute) {
-            len = 1;
+            bp_len = 1;
         }
 
-        if (bp.active && (addr >= bp.addr && addr < bp.addr + len)) {
+        if (bp.active && (bp_addr + bp_len > addr)) {
             LOG_DEBUG(Debug_GDBStub,
                       "Found breakpoint type {} @ {:08x}, range: {:08x}"
                       " - {:08x} ({:x} bytes)",
-                      static_cast<int>(type), addr, bp.addr, bp.addr + len, len);
+                      static_cast<int>(type), addr, bp_addr, bp_addr + bp_len, bp_len);
             return true;
         }
     }

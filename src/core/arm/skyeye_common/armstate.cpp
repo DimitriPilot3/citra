@@ -183,21 +183,21 @@ void ARMul_State::ResetMPCoreCP15Registers() {
     CP15[CP15_TLB_DEBUG_CONTROL] = 0x00000000;
 }
 
-static void CheckMemoryBreakpoint(u32 address, GDBStub::BreakpointType type) {
-    if (GDBStub::IsServerEnabled() && GDBStub::CheckBreakpoint(address, type)) {
+static void CheckMemoryBreakpoint(u32 address, u32 len, GDBStub::BreakpointType type) {
+    if (GDBStub::IsServerEnabled() && GDBStub::CheckBreakpoint(address, len, type)) {
         LOG_DEBUG(Debug, "Found memory breakpoint @ {:08x}", address);
         GDBStub::OnWatchpointHit(address);
     }
 }
 
 u8 ARMul_State::ReadMemory8(u32 address) const {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Read);
+    CheckMemoryBreakpoint(address, 1, GDBStub::BreakpointType::Read);
 
     return memory.Read8(address);
 }
 
 u16 ARMul_State::ReadMemory16(u32 address) const {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Read);
+    CheckMemoryBreakpoint(address, 2, GDBStub::BreakpointType::Read);
 
     u16 data = memory.Read16(address);
 
@@ -208,7 +208,7 @@ u16 ARMul_State::ReadMemory16(u32 address) const {
 }
 
 u32 ARMul_State::ReadMemory32(u32 address) const {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Read);
+    CheckMemoryBreakpoint(address, 4, GDBStub::BreakpointType::Read);
 
     u32 data = memory.Read32(address);
 
@@ -219,7 +219,7 @@ u32 ARMul_State::ReadMemory32(u32 address) const {
 }
 
 u64 ARMul_State::ReadMemory64(u32 address) const {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Read);
+    CheckMemoryBreakpoint(address, 8, GDBStub::BreakpointType::Read);
 
     u64 data = memory.Read64(address);
 
@@ -230,13 +230,13 @@ u64 ARMul_State::ReadMemory64(u32 address) const {
 }
 
 void ARMul_State::WriteMemory8(u32 address, u8 data) {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Write);
+    CheckMemoryBreakpoint(address, 1, GDBStub::BreakpointType::Write);
 
     memory.Write8(address, data);
 }
 
 void ARMul_State::WriteMemory16(u32 address, u16 data) {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Write);
+    CheckMemoryBreakpoint(address, 2, GDBStub::BreakpointType::Write);
 
     if (InBigEndianMode())
         data = Common::swap16(data);
@@ -245,7 +245,7 @@ void ARMul_State::WriteMemory16(u32 address, u16 data) {
 }
 
 void ARMul_State::WriteMemory32(u32 address, u32 data) {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Write);
+    CheckMemoryBreakpoint(address, 4, GDBStub::BreakpointType::Write);
 
     if (InBigEndianMode())
         data = Common::swap32(data);
@@ -254,7 +254,7 @@ void ARMul_State::WriteMemory32(u32 address, u32 data) {
 }
 
 void ARMul_State::WriteMemory64(u32 address, u64 data) {
-    CheckMemoryBreakpoint(address, GDBStub::BreakpointType::Write);
+    CheckMemoryBreakpoint(address, 8, GDBStub::BreakpointType::Write);
 
     if (InBigEndianMode())
         data = Common::swap64(data);

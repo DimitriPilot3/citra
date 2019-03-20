@@ -71,12 +71,13 @@ void HandlePacket();
 BreakpointAddress GetNextBreakpointFromAddress(VAddr addr, GDBStub::BreakpointType type);
 
 /**
- * Check if a breakpoint of the specified type exists at the given address.
+ * Check if any breakpoints of the given type are watching the given memory block.
  *
- * @param addr Address of breakpoint.
- * @param type Type of breakpoint.
+ * @param addr Address of the memory block.
+ * @param len  How long/wide the memory block is, in bytes.
+ * @param type Type of breakpoint to search for.
  */
-bool CheckBreakpoint(VAddr addr, GDBStub::BreakpointType type);
+bool CheckBreakpoint(VAddr addr, u32 len, GDBStub::BreakpointType type);
 
 // If set to true, the CPU will halt at the beginning of the next CPU loop.
 bool GetCpuHaltFlag();
