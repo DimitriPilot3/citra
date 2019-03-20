@@ -435,9 +435,9 @@ BreakpointAddress GetNextBreakpointFromAddress(VAddr addr, BreakpointType type) 
     return breakpoint;
 }
 
-bool CheckBreakpoint(VAddr addr, u32 len, BreakpointType type) {
+std::optional<VAddr> CheckBreakpoint(VAddr addr, u32 len, BreakpointType type) {
     if (!IsConnected()) {
-        return false;
+        return {};
     }
 
     const BreakpointMap& p = GetBreakpointMap(type);
@@ -480,11 +480,11 @@ bool CheckBreakpoint(VAddr addr, u32 len, BreakpointType type) {
                       "Found breakpoint type {} @ {:08x}, range: {:08x}"
                       " - {:08x} ({:x} bytes)",
                       static_cast<int>(type), addr, bp_addr, bp_addr + bp_len, bp_len);
-            return true;
+            return bp.addr;
         }
     }
 
-    return false;
+    return {};
 }
 
 /**

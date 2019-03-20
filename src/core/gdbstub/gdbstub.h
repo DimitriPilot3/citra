@@ -72,12 +72,13 @@ BreakpointAddress GetNextBreakpointFromAddress(VAddr addr, GDBStub::BreakpointTy
 
 /**
  * Check if any breakpoints of the given type are watching the given memory block.
+ * If one such breakpoint is found, this function returns its start address.
  *
  * @param addr Address of the memory block.
  * @param len  How long/wide the memory block is, in bytes.
  * @param type Type of breakpoint to search for.
  */
-bool CheckBreakpoint(VAddr addr, u32 len, GDBStub::BreakpointType type);
+std::optional<VAddr> CheckBreakpoint(VAddr addr, u32 len, GDBStub::BreakpointType type);
 
 // If set to true, the CPU will halt at the beginning of the next CPU loop.
 bool GetCpuHaltFlag();
